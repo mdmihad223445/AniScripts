@@ -1,5 +1,7 @@
 -- =====================================================================
---  PRO SCRIPT v3  —  Compact UI | 5 ESP | Auto Steal (Main tab)
+--  PRO SCRIPT v4  —  Full build
+--  ESP: Player (green) | Chest (gold) | Raft (blue) | Loot (brown) | Shark (red)
+--  Main: Auto Steal All Chests (tween-tp + all interactions + return)
 -- =====================================================================
 
 local Players      = game:GetService("Players")
@@ -9,10 +11,10 @@ local UserInput    = game:GetService("UserInputService")
 local LocalPlayer  = Players.LocalPlayer
 
 -- =====================================================================
---  1.  GUI  (compact 360x280)
+--  1.  GUI
 -- =====================================================================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ProScriptV3"
+screenGui.Name = "ProScriptV4"
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -31,7 +33,7 @@ mainStroke.Color = Color3.fromRGB(0, 255, 150)
 mainStroke.Thickness = 1
 mainStroke.Transparency = 0.45
 
--- Title bar
+-- title bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 34)
 titleBar.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
@@ -43,7 +45,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -90, 1, 0)
 title.Position = UDim2.new(0, 14, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "PRO SCRIPT v3"
+title.Text = "PRO SCRIPT v4"
 title.TextColor3 = Color3.fromRGB(0, 255, 150)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 13
@@ -72,7 +74,7 @@ closeBtn.TextSize = 15
 closeBtn.Parent = titleBar
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
--- Sidebar
+-- sidebar
 local sidebar = Instance.new("Frame")
 sidebar.Size = UDim2.new(0, 84, 1, -34)
 sidebar.Position = UDim2.new(0, 0, 0, 34)
@@ -80,7 +82,7 @@ sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
 
--- Content
+-- content
 local content = Instance.new("Frame")
 content.Size = UDim2.new(1, -84, 1, -34)
 content.Position = UDim2.new(0, 84, 0, 34)
@@ -101,11 +103,34 @@ end
 
 local mainPage = newPage()
 mainPage.Visible = true
-
 local espPage = newPage()
 
 -- =====================================================================
---  3.  TOGGLE WIDGET
+--  3.  STATUS LABEL (shared)
+-- =====================================================================
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -20, 0, 60)
+statusLabel.Position = UDim2.new(0, 10, 1, -66)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Ready."
+statusLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 10
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.TextYAlignment = Enum.TextYAlignment.Top
+statusLabel.TextWrapped = true
+statusLabel.Parent = mainPage
+
+local statusLabel2 = statusLabel:Clone()
+statusLabel2.Parent = espPage
+
+local function setStatus(txt)
+    statusLabel.Text = txt
+    statusLabel2.Text = txt
+end
+
+-- =====================================================================
+--  4.  TOGGLE WIDGET
 -- =====================================================================
 local function makeToggle(parent, yPos, label, color)
     local btn = Instance.new("TextButton")
@@ -155,7 +180,7 @@ local function updateToggle(btn, dot, stroke, color, on, label)
 end
 
 -- =====================================================================
---  4.  ESP PAGE — 5 toggles
+--  5.  ESP PAGE
 -- =====================================================================
 local espHeader = Instance.new("TextLabel")
 espHeader.Size = UDim2.new(1, -20, 0, 20)
@@ -168,32 +193,44 @@ espHeader.TextSize = 11
 espHeader.TextXAlignment = Enum.TextXAlignment.Left
 espHeader.Parent = espPage
 
-local pBtn,  pDot,  pStroke,  pColor  = makeToggle(espPage, 30,  "Player ESP", Color3.fromRGB(0, 255, 120))
-local cBtn,  cDot,  cStroke,  cColor  = makeToggle(espPage, 64,  "Chest ESP",  Color3.fromRGB(255, 200, 0))
-local rBtn,  rDot,  rStroke,  rColor  = makeToggle(espPage, 98,  "Raft ESP",   Color3.fromRGB(60, 140, 255))
-local lBtn,  lDot,  lStroke,  lColor  = makeToggle(espPage, 132, "Loot ESP",   Color3.fromRGB(170, 110, 60))
-local sBtn,  sDot,  sStroke,  sColor  = makeToggle(espPage, 166, "Shark ESP",  Color3.fromRGB(255, 50, 50))
+local pBtn, pDot, pStroke, pColor = makeToggle(espPage, 30, "Player ESP", Color3.fromRGB(0, 255, 120))
+local cBtn, cDot, cStroke, cColor = makeToggle(espPage, 64, "Chest ESP",  Color3.fromRGB(255, 200, 0))
+local rBtn, rDot, rStroke, rColor = makeToggle(espPage, 98, "Raft ESP",   Color3.fromRGB(60, 140, 255))
+local lBtn, lDot, lStroke, lColor = makeToggle(espPage, 132, "Loot ESP",  Color3.fromRGB(170, 110, 60))
+local sBtn, sDot, sStroke, sColor = makeToggle(espPage, 166, "Shark ESP", Color3.fromRGB(255, 50, 50))
+
+-- debug dump button
+local dumpBtn = Instance.new("TextButton")
+dumpBtn.Size = UDim2.new(1, -20, 0, 26)
+dumpBtn.Position = UDim2.new(0, 10, 0, 200)
+dumpBtn.Text = "Dump Workspace Names (F9)"
+dumpBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+dumpBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
+dumpBtn.Font = Enum.Font.GothamBold
+dumpBtn.TextSize = 10
+dumpBtn.Parent = espPage
+Instance.new("UICorner", dumpBtn).CornerRadius = UDim.new(0, 6)
 
 -- =====================================================================
---  5.  MAIN PAGE  (Auto Steal All Chests)
+--  6.  MAIN PAGE
 -- =====================================================================
-local mainWelcome = Instance.new("TextLabel")
-mainWelcome.Size = UDim2.new(1, -20, 0, 22)
-mainWelcome.Position = UDim2.new(0, 10, 0, 8)
-mainWelcome.BackgroundTransparency = 1
-mainWelcome.Text = "MAIN — AUTO STEAL"
-mainWelcome.TextColor3 = Color3.fromRGB(0, 255, 150)
-mainWelcome.Font = Enum.Font.GothamBold
-mainWelcome.TextSize = 11
-mainWelcome.TextXAlignment = Enum.TextXAlignment.Left
-mainWelcome.Parent = mainPage
+local mainHeader = Instance.new("TextLabel")
+mainHeader.Size = UDim2.new(1, -20, 0, 20)
+mainHeader.Position = UDim2.new(0, 10, 0, 6)
+mainHeader.BackgroundTransparency = 1
+mainHeader.Text = "MAIN — AUTO STEAL"
+mainHeader.TextColor3 = Color3.fromRGB(0, 255, 150)
+mainHeader.Font = Enum.Font.GothamBold
+mainHeader.TextSize = 11
+mainHeader.TextXAlignment = Enum.TextXAlignment.Left
+mainHeader.Parent = mainPage
 
 local stealBtn, stealDot, stealStroke, stealColor =
-    makeToggle(mainPage, 36, "Auto Steal All Chests", Color3.fromRGB(0, 255, 150))
+    makeToggle(mainPage, 32, "Auto Steal All Chests", Color3.fromRGB(0, 255, 150))
 
 local stopBtn = Instance.new("TextButton")
-stopBtn.Size = UDim2.new(1, -20, 0, 30)
-stopBtn.Position = UDim2.new(0, 10, 0, 72)
+stopBtn.Size = UDim2.new(1, -20, 0, 28)
+stopBtn.Position = UDim2.new(0, 10, 0, 68)
 stopBtn.Text = "STOP"
 stopBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
 stopBtn.TextColor3 = Color3.fromRGB(255, 130, 130)
@@ -203,8 +240,8 @@ stopBtn.Parent = mainPage
 Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0, 6)
 
 local returnBtn = Instance.new("TextButton")
-returnBtn.Size = UDim2.new(1, -20, 0, 30)
-returnBtn.Position = UDim2.new(0, 10, 0, 108)
+returnBtn.Size = UDim2.new(1, -20, 0, 28)
+returnBtn.Position = UDim2.new(0, 10, 0, 102)
 returnBtn.Text = "Return to My Raft"
 returnBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 55)
 returnBtn.TextColor3 = Color3.fromRGB(120, 200, 255)
@@ -213,23 +250,21 @@ returnBtn.TextSize = 11
 returnBtn.Parent = mainPage
 Instance.new("UICorner", returnBtn).CornerRadius = UDim.new(0, 6)
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 60)
-statusLabel.Position = UDim2.new(0, 10, 0, 148)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Ready."
-statusLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 10
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.TextYAlignment = Enum.TextYAlignment.Top
-statusLabel.TextWrapped = true
-statusLabel.Parent = mainPage
+local rescanBtn = Instance.new("TextButton")
+rescanBtn.Size = UDim2.new(1, -20, 0, 28)
+rescanBtn.Position = UDim2.new(0, 10, 0, 136)
+rescanBtn.Text = "Re-scan Chests (F9 log)"
+rescanBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+rescanBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
+rescanBtn.Font = Enum.Font.GothamBold
+rescanBtn.TextSize = 11
+rescanBtn.Parent = mainPage
+Instance.new("UICorner", rescanBtn).CornerRadius = UDim.new(0, 6)
 
 -- =====================================================================
---  6.  SIDEBAR BUTTONS
+--  7.  SIDEBAR NAV
 -- =====================================================================
-local function makeSidebarBtn(text, yPos, accent)
+local function makeSidebarBtn(text, yPos)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -12, 0, 32)
     b.Position = UDim2.new(0, 6, 0, yPos)
@@ -240,15 +275,15 @@ local function makeSidebarBtn(text, yPos, accent)
     b.TextSize = 11
     b.Parent = sidebar
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    return b, accent
+    return b
 end
 
-local mainNav, mainAcc = makeSidebarBtn("Main", 10, Color3.fromRGB(0, 255, 150))
-local espNav,  espAcc  = makeSidebarBtn("ESP",  50, Color3.fromRGB(60, 140, 255))
+local mainNav = makeSidebarBtn("Main", 10)
+local espNav  = makeSidebarBtn("ESP",  50)
 
-local function setActive(active, inactive, accent)
-    active.BackgroundColor3 = Color3.fromRGB(accent.R * 0.28, accent.G * 0.28, accent.B * 0.28)
-    active.TextColor3 = accent
+local function setActive(active, inactive)
+    active.BackgroundColor3 = Color3.fromRGB(0, 120, 70)
+    active.TextColor3 = Color3.fromRGB(255, 255, 255)
     inactive.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
     inactive.TextColor3 = Color3.fromRGB(200, 200, 210)
 end
@@ -256,16 +291,14 @@ end
 mainNav.MouseButton1Click:Connect(function()
     mainPage.Visible = true
     espPage.Visible = false
-    setActive(mainNav, espNav, mainAcc)
+    setActive(mainNav, espNav)
 end)
-
 espNav.MouseButton1Click:Connect(function()
     mainPage.Visible = false
     espPage.Visible = true
-    setActive(espNav, mainNav, espAcc)
+    setActive(espNav, mainNav)
 end)
-
-setActive(mainNav, espNav, mainAcc)
+setActive(mainNav, espNav)
 
 -- minimize / close
 local minimized = false
@@ -295,21 +328,17 @@ minBtn.MouseButton1Click:Connect(function()
         end
     end
 end)
-
 closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
 -- =====================================================================
---  7.  ESP SYSTEM  (optimized — heartbeat scanner w/ cache)
+--  8.  KEYWORDS + MATCHER
 -- =====================================================================
-local ESP_KEYWORDS = {
-    rafts   = {"raft", "boat", "plot", "platform"},
-    chests  = {"chest", "stash", "treasure", "crate"},        -- "loot" moved to loot
-    loots   = {"loot", "drop", "bag", "box", "pickup"},
-    sharks  = {"shark", "fish", "meg", "sea monster", "predator"},
+local KEYWORDS = {
+    chests = {"chest", "stash", "treasure", "crate", "safe", "vault", "lootbox"},
+    rafts  = {"raft", "boat", "plot", "platform", "ship"},
+    loots  = {"loot", "drop", "bag", "pickup", "reward", "coin", "gem"},
+    sharks = {"shark", "meg", "fish", "predator", "monster", "whale", "orca", "croc", "piranha"},
 }
-
-local espState = { players=false, chests=false, rafts=false, loots=false, sharks=false }
-local espObjs  = { players={}, chests={}, rafts={}, loots={}, sharks={} }
 
 local function nameMatches(name, keywords)
     local l = string.lower(name)
@@ -318,6 +347,12 @@ local function nameMatches(name, keywords)
     end
     return false
 end
+
+-- =====================================================================
+--  9.  ESP SYSTEM
+-- =====================================================================
+local espState = { players=false, chests=false, rafts=false, loots=false, sharks=false }
+local espObjs  = { players={}, chests={}, rafts={}, loots={}, sharks={} }
 
 local function createHighlight(target, color)
     if not target or not target.Parent then return nil end
@@ -350,34 +385,23 @@ local function refreshPlayers()
     end
 end
 
--- one workspace scan, populates chests/rafts/loots/sharks
 local function refreshWorldESP()
-    local wantChests = espState.chests
-    local wantRafts  = espState.rafts
-    local wantLoots  = espState.loots
-    local wantSharks = espState.sharks
-
-    if not (wantChests or wantRafts or wantLoots or wantSharks) then
-        clearGroup("chests"); clearGroup("rafts"); clearGroup("loots"); clearGroup("sharks")
-        return
-    end
-
     clearGroup("chests"); clearGroup("rafts"); clearGroup("loots"); clearGroup("sharks")
-
+    if not (espState.chests or espState.rafts or espState.loots or espState.sharks) then return end
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Model") or obj:IsA("BasePart") then
             if not Players:GetPlayerFromCharacter(obj) then
                 local n = obj.Name
-                if wantChests and nameMatches(n, ESP_KEYWORDS.chests) then
+                if espState.chests and nameMatches(n, KEYWORDS.chests) then
                     local h = createHighlight(obj, Color3.fromRGB(255, 200, 0))
                     if h then espObjs.chests[obj] = h end
-                elseif wantRafts and nameMatches(n, ESP_KEYWORDS.rafts) then
+                elseif espState.rafts and nameMatches(n, KEYWORDS.rafts) then
                     local h = createHighlight(obj, Color3.fromRGB(60, 140, 255))
                     if h then espObjs.rafts[obj] = h end
-                elseif wantLoots and nameMatches(n, ESP_KEYWORDS.loots) then
+                elseif espState.loots and nameMatches(n, KEYWORDS.loots) then
                     local h = createHighlight(obj, Color3.fromRGB(170, 110, 60))
                     if h then espObjs.loots[obj] = h end
-                elseif wantSharks and nameMatches(n, ESP_KEYWORDS.sharks) then
+                elseif espState.sharks and nameMatches(n, KEYWORDS.sharks) then
                     local h = createHighlight(obj, Color3.fromRGB(255, 50, 50))
                     if h then espObjs.sharks[obj] = h end
                 end
@@ -386,7 +410,6 @@ local function refreshWorldESP()
     end
 end
 
--- toggles
 pBtn.MouseButton1Click:Connect(function()
     espState.players = not espState.players
     updateToggle(pBtn, pDot, pStroke, pColor, espState.players, "Player ESP")
@@ -411,21 +434,50 @@ sBtn.MouseButton1Click:Connect(function()
     espState.sharks = not espState.sharks
     updateToggle(sBtn, sDot, sStroke, sColor, espState.sharks, "Shark ESP")
     refreshWorldESP()
+    if espState.sharks then
+        -- print all shark-like matches so user can see real names
+        print("=== SHARK ESP DEBUG ===")
+        local found = 0
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and not Players:GetPlayerFromCharacter(obj) then
+                if nameMatches(obj.Name, KEYWORDS.sharks) then
+                    print("  MATCH:", obj.Name, obj.ClassName)
+                    found = found + 1
+                end
+            end
+        end
+        print(("Total shark-like models: %d"):format(found))
+        print("=======================")
+    end
+end)
+
+-- workspace name dump
+dumpBtn.MouseButton1Click:Connect(function()
+    print("===== WORKSPACE MODEL DUMP =====")
+    local count = 0
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and not Players:GetPlayerFromCharacter(obj) then
+            print(obj.ClassName, "->", obj.Name)
+            count = count + 1
+            if count >= 200 then print("...truncated at 200"); break end
+        end
+    end
+    print(("Total models (first 200 shown): %d"):format(count))
+    print("===============================")
+    setStatus("Dumped workspace model names to F9 console.")
 end)
 
 -- =====================================================================
---  8.  AUTO STEAL SYSTEM
+--  10.  AUTO STEAL  (smooth tween-tp + every interaction)
 -- =====================================================================
 local autoSteal = false
+local savedCFrame = nil
 
 local function getChar()
     local c = LocalPlayer.Character
     if not c then return nil, nil end
     return c, c:FindFirstChild("HumanoidRootPart")
 end
-
--- Save / restore CFrame (the "my own raft" spot = where you were when enabled)
-local savedCFrame = nil
 
 local function saveMySpot()
     local _, hrp = getChar()
@@ -437,7 +489,7 @@ end
 
 local function returnToMySpot()
     if not savedCFrame then
-        setStatus("No saved spot — enabling Auto Steal saves it.")
+        setStatus("No saved spot. Toggle Auto Steal to save it.")
         return
     end
     local _, hrp = getChar()
@@ -447,13 +499,12 @@ local function returnToMySpot()
     end
 end
 
--- Find all chest-like objects
 local function getChests()
     local list = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Model") or obj:IsA("BasePart") then
             if not Players:GetPlayerFromCharacter(obj) then
-                if nameMatches(obj.Name, ESP_KEYWORDS.chests) then
+                if nameMatches(obj.Name, KEYWORDS.chests) then
                     local root = obj:IsA("Model")
                         and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart"))
                         or obj
@@ -473,56 +524,91 @@ local function distTo(part)
     return (hrp.Position - part.Position).Magnitude
 end
 
--- steal a single chest: tp there, fire tools, touch, fire prompts, wait, back
-local function stealChest(entry)
-    local char, hrp = getChar()
-    if not char or not hrp then return end
+-- Smooth tween teleport (avoids insta-kick from naive speed checks)
+local function smoothTeleport(targetPos)
+    local _, hrp = getChar()
+    if not hrp then return end
+    local dist = (hrp.Position - targetPos).Magnitude
+    -- duration scaled: ~1s per 200 studs, min 0.15s
+    local dur = math.clamp(dist / 200, 0.15, 1.2)
+    local tw = TweenService:Create(
+        hrp,
+        TweenInfo.new(dur, Enum.EasingStyle.Linear),
+        {CFrame = CFrame.new(targetPos)}
+    )
+    tw:Play()
+    tw.Completed:Wait()
+end
 
-    local part = entry.part
+-- Try every interaction path on the chest
+local function interactWithChest(entry)
+    local char = LocalPlayer.Character
+    if not char then return end
 
-    -- step 1: teleport onto chest
-    hrp.CFrame = CFrame.new(part.Position + Vector3.new(0, 2, 0))
-
-    -- step 2: activate all tools
+    -- 1) tools
     for _, t in ipairs(char:GetChildren()) do
         if t:IsA("Tool") then
             pcall(function() t:Activate() end)
         end
     end
 
-    -- step 3: fire any ProximityPrompt / ClickDetector in the chest
+    -- 2) ProximityPrompt (hold)
     for _, d in ipairs(entry.obj:GetDescendants()) do
         if d:IsA("ProximityPrompt") then
             pcall(function()
+                d.Enabled = true
                 d:InputHoldBegin()
-                task.wait(math.max(0.05, d.HoldDuration or 0.1))
+                local hold = d.HoldDuration
+                if hold and hold > 0 then
+                    task.wait(hold + 0.05)
+                else
+                    task.wait(0.12)
+                end
                 d:InputHoldEnd()
             end)
-        elseif d:IsA("ClickDetector") then
+        end
+    end
+
+    -- 3) ClickDetector
+    for _, d in ipairs(entry.obj:GetDescendants()) do
+        if d:IsA("ClickDetector") then
             pcall(function() fireclickdetector(d) end)
         end
     end
 
-    task.wait(0.25)
+    -- 4) Touched — move HRP inside
+    local _, hrp = getChar()
+    if hrp and entry.part then
+        hrp.CFrame = CFrame.new(entry.part.Position + Vector3.new(0, 1, 0))
+    end
+
+    task.wait(0.18)
 end
 
--- main loop
+-- steal one chest
+local function stealChest(entry)
+    local _, hrp = getChar()
+    if not hrp or not entry.part then return end
+    local targetPos = entry.part.Position + Vector3.new(0, 2.5, 0)
+    smoothTeleport(targetPos)
+    interactWithChest(entry)
+end
+
+-- main auto loop
 task.spawn(function()
     while screenGui.Parent do
-        task.wait(0.6)
+        task.wait(0.5)
         if autoSteal then
             local chests = getChests()
             if #chests == 0 then
                 setStatus("Auto Steal: no chests found.")
             else
-                -- nearest first
                 table.sort(chests, function(a, b) return distTo(a.part) < distTo(b.part) end)
                 for i, c in ipairs(chests) do
                     if not autoSteal then break end
                     setStatus(("Stealing %d/%d — %s"):format(i, #chests, c.obj.Name))
                     stealChest(c)
                 end
-                -- teleport back to saved spot
                 returnToMySpot()
                 setStatus("Cycle done. Back on my raft.")
             end
@@ -530,12 +616,11 @@ task.spawn(function()
     end
 end)
 
--- toggle
 stealBtn.MouseButton1Click:Connect(function()
     autoSteal = not autoSteal
     if autoSteal then
-        saveMySpot()                       -- <-- store my raft position
-        setStatus("Auto Steal: STARTED (saved my spot).")
+        saveMySpot()
+        setStatus("Auto Steal: STARTED (my spot saved).")
     else
         setStatus("Auto Steal: stopped.")
     end
@@ -553,19 +638,21 @@ returnBtn.MouseButton1Click:Connect(function()
     returnToMySpot()
 end)
 
--- =====================================================================
---  9.  STATUS HELPER
--- =====================================================================
-local function setStatus(txt)
-    statusLabel.Text = txt
-end
+rescanBtn.MouseButton1Click:Connect(function()
+    local chests = getChests()
+    print(("=== CHEST SCAN: %d found ==="):format(#chests))
+    for i, c in ipairs(chests) do
+        print(("[%d] %s (%s) — dist %.0f"):format(i, c.obj.Name, c.obj.ClassName, distTo(c.part)))
+    end
+    setStatus(("Scan: %d chests. See F9 console."):format(#chests))
+end)
 
 -- =====================================================================
---  10. OPTIMIZED REFRESH LOOP
+--  11.  OPTIMIZED REFRESH LOOP
 -- =====================================================================
 task.spawn(function()
     while screenGui.Parent do
-        task.wait(2)                        -- slower = lighter
+        task.wait(2)
         if espState.players then refreshPlayers() end
         if espState.chests or espState.rafts or espState.loots or espState.sharks then
             refreshWorldESP()
@@ -573,7 +660,7 @@ task.spawn(function()
     end
 end)
 
--- shortcut: right ctrl toggles gui
+-- shortcut
 UserInput.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.RightControl then
@@ -582,4 +669,4 @@ UserInput.InputBegan:Connect(function(input, gp)
 end)
 
 setStatus("Loaded. Ready.")
-print("[PRO SCRIPT v3] ready.")
+print("[PRO SCRIPT v4] ready — F9 console for scans.")

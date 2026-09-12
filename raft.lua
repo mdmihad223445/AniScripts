@@ -1,7 +1,7 @@
 -- =====================================================================
---  PRO SCRIPT v4  —  Full build
---  ESP: Player (green) | Chest (gold) | Raft (blue) | Loot (brown) | Shark (red)
---  Main: Auto Steal All Chests (tween-tp + all interactions + return)
+--  PRO SCRIPT v5 — Raft Chest Auto Steal (fixed)
+--  ESP: Player(green) | Chest(gold) | Raft(blue) | Loot(brown) | Shark(red)
+--  Auto Steal: ONLY steals chests sitting on OTHER players' rafts
 -- =====================================================================
 
 local Players      = game:GetService("Players")
@@ -14,7 +14,7 @@ local LocalPlayer  = Players.LocalPlayer
 --  1.  GUI
 -- =====================================================================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ProScriptV4"
+screenGui.Name = "ProScriptV5"
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -33,7 +33,6 @@ mainStroke.Color = Color3.fromRGB(0, 255, 150)
 mainStroke.Thickness = 1
 mainStroke.Transparency = 0.45
 
--- title bar
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 34)
 titleBar.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
@@ -45,7 +44,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -90, 1, 0)
 title.Position = UDim2.new(0, 14, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "PRO SCRIPT v4"
+title.Text = "PRO SCRIPT v5"
 title.TextColor3 = Color3.fromRGB(0, 255, 150)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 13
@@ -74,7 +73,6 @@ closeBtn.TextSize = 15
 closeBtn.Parent = titleBar
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
--- sidebar
 local sidebar = Instance.new("Frame")
 sidebar.Size = UDim2.new(0, 84, 1, -34)
 sidebar.Position = UDim2.new(0, 0, 0, 34)
@@ -82,7 +80,6 @@ sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
 
--- content
 local content = Instance.new("Frame")
 content.Size = UDim2.new(1, -84, 1, -34)
 content.Position = UDim2.new(0, 84, 0, 34)
@@ -106,11 +103,11 @@ mainPage.Visible = true
 local espPage = newPage()
 
 -- =====================================================================
---  3.  STATUS LABEL (shared)
+--  3.  STATUS
 -- =====================================================================
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 60)
-statusLabel.Position = UDim2.new(0, 10, 1, -66)
+statusLabel.Size = UDim2.new(1, -20, 0, 70)
+statusLabel.Position = UDim2.new(0, 10, 1, -76)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Text = "Ready."
 statusLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
@@ -147,10 +144,8 @@ local function makeToggle(parent, yPos, label, color)
     local stroke = Instance.new("UIStroke", btn)
     stroke.Color = Color3.fromRGB(55, 55, 65)
     stroke.Thickness = 1
-
     local pad = Instance.new("UIPadding", btn)
     pad.PaddingLeft = UDim.new(0, 12)
-
     local dot = Instance.new("Frame")
     dot.Size = UDim2.new(0, 8, 0, 8)
     dot.Position = UDim2.new(1, -18, 0.5, -4)
@@ -158,7 +153,6 @@ local function makeToggle(parent, yPos, label, color)
     dot.BorderSizePixel = 0
     dot.Parent = btn
     Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-
     return btn, dot, stroke, color
 end
 
@@ -199,7 +193,6 @@ local rBtn, rDot, rStroke, rColor = makeToggle(espPage, 98, "Raft ESP",   Color3
 local lBtn, lDot, lStroke, lColor = makeToggle(espPage, 132, "Loot ESP",  Color3.fromRGB(170, 110, 60))
 local sBtn, sDot, sStroke, sColor = makeToggle(espPage, 166, "Shark ESP", Color3.fromRGB(255, 50, 50))
 
--- debug dump button
 local dumpBtn = Instance.new("TextButton")
 dumpBtn.Size = UDim2.new(1, -20, 0, 26)
 dumpBtn.Position = UDim2.new(0, 10, 0, 200)
@@ -218,19 +211,19 @@ local mainHeader = Instance.new("TextLabel")
 mainHeader.Size = UDim2.new(1, -20, 0, 20)
 mainHeader.Position = UDim2.new(0, 10, 0, 6)
 mainHeader.BackgroundTransparency = 1
-mainHeader.Text = "MAIN — AUTO STEAL"
+mainHeader.Text = "MAIN — AUTO STEAL RAFT CHESTS"
 mainHeader.TextColor3 = Color3.fromRGB(0, 255, 150)
 mainHeader.Font = Enum.Font.GothamBold
-mainHeader.TextSize = 11
+mainHeader.TextSize = 10
 mainHeader.TextXAlignment = Enum.TextXAlignment.Left
 mainHeader.Parent = mainPage
 
 local stealBtn, stealDot, stealStroke, stealColor =
-    makeToggle(mainPage, 32, "Auto Steal All Chests", Color3.fromRGB(0, 255, 150))
+    makeToggle(mainPage, 28, "Auto Steal Raft Chests", Color3.fromRGB(0, 255, 150))
 
 local stopBtn = Instance.new("TextButton")
 stopBtn.Size = UDim2.new(1, -20, 0, 28)
-stopBtn.Position = UDim2.new(0, 10, 0, 68)
+stopBtn.Position = UDim2.new(0, 10, 0, 64)
 stopBtn.Text = "STOP"
 stopBtn.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
 stopBtn.TextColor3 = Color3.fromRGB(255, 130, 130)
@@ -241,7 +234,7 @@ Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0, 6)
 
 local returnBtn = Instance.new("TextButton")
 returnBtn.Size = UDim2.new(1, -20, 0, 28)
-returnBtn.Position = UDim2.new(0, 10, 0, 102)
+returnBtn.Position = UDim2.new(0, 10, 0, 98)
 returnBtn.Text = "Return to My Raft"
 returnBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 55)
 returnBtn.TextColor3 = Color3.fromRGB(120, 200, 255)
@@ -252,8 +245,8 @@ Instance.new("UICorner", returnBtn).CornerRadius = UDim.new(0, 6)
 
 local rescanBtn = Instance.new("TextButton")
 rescanBtn.Size = UDim2.new(1, -20, 0, 28)
-rescanBtn.Position = UDim2.new(0, 10, 0, 136)
-rescanBtn.Text = "Re-scan Chests (F9 log)"
+rescanBtn.Position = UDim2.new(0, 10, 0, 132)
+rescanBtn.Text = "Scan Raft Chests (F9)"
 rescanBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 rescanBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
 rescanBtn.Font = Enum.Font.GothamBold
@@ -289,18 +282,13 @@ local function setActive(active, inactive)
 end
 
 mainNav.MouseButton1Click:Connect(function()
-    mainPage.Visible = true
-    espPage.Visible = false
-    setActive(mainNav, espNav)
+    mainPage.Visible = true; espPage.Visible = false; setActive(mainNav, espNav)
 end)
 espNav.MouseButton1Click:Connect(function()
-    mainPage.Visible = false
-    espPage.Visible = true
-    setActive(espNav, mainNav)
+    mainPage.Visible = false; espPage.Visible = true; setActive(espNav, mainNav)
 end)
 setActive(mainNav, espNav)
 
--- minimize / close
 local minimized = false
 local reopenBtn
 minBtn.MouseButton1Click:Connect(function()
@@ -331,12 +319,12 @@ end)
 closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
 -- =====================================================================
---  8.  KEYWORDS + MATCHER
+--  8.  KEYWORDS
 -- =====================================================================
 local KEYWORDS = {
-    chests = {"chest", "stash", "treasure", "crate", "safe", "vault", "lootbox"},
+    chests = {"chest", "stash", "treasure", "crate", "safe", "vault"},
     rafts  = {"raft", "boat", "plot", "platform", "ship"},
-    loots  = {"loot", "drop", "bag", "pickup", "reward", "coin", "gem"},
+    loots  = {"loot", "drop", "bag", "pickup", "reward"},
     sharks = {"shark", "meg", "fish", "predator", "monster", "whale", "orca", "croc", "piranha"},
 }
 
@@ -349,7 +337,7 @@ local function nameMatches(name, keywords)
 end
 
 -- =====================================================================
---  9.  ESP SYSTEM
+--  9.  ESP
 -- =====================================================================
 local espState = { players=false, chests=false, rafts=false, loots=false, sharks=false }
 local espObjs  = { players={}, chests={}, rafts={}, loots={}, sharks={} }
@@ -434,24 +422,8 @@ sBtn.MouseButton1Click:Connect(function()
     espState.sharks = not espState.sharks
     updateToggle(sBtn, sDot, sStroke, sColor, espState.sharks, "Shark ESP")
     refreshWorldESP()
-    if espState.sharks then
-        -- print all shark-like matches so user can see real names
-        print("=== SHARK ESP DEBUG ===")
-        local found = 0
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and not Players:GetPlayerFromCharacter(obj) then
-                if nameMatches(obj.Name, KEYWORDS.sharks) then
-                    print("  MATCH:", obj.Name, obj.ClassName)
-                    found = found + 1
-                end
-            end
-        end
-        print(("Total shark-like models: %d"):format(found))
-        print("=======================")
-    end
 end)
 
--- workspace name dump
 dumpBtn.MouseButton1Click:Connect(function()
     print("===== WORKSPACE MODEL DUMP =====")
     local count = 0
@@ -459,16 +431,106 @@ dumpBtn.MouseButton1Click:Connect(function()
         if obj:IsA("Model") and not Players:GetPlayerFromCharacter(obj) then
             print(obj.ClassName, "->", obj.Name)
             count = count + 1
-            if count >= 200 then print("...truncated at 200"); break end
+            if count >= 200 then print("...truncated"); break end
         end
     end
-    print(("Total models (first 200 shown): %d"):format(count))
-    print("===============================")
-    setStatus("Dumped workspace model names to F9 console.")
+    print(("Total models: %d"):format(count))
+    setStatus("Dumped model names to F9.")
 end)
 
 -- =====================================================================
---  10.  AUTO STEAL  (smooth tween-tp + every interaction)
+--  10.  RAFT DETECTION  (critical helper)
+-- =====================================================================
+--[[
+   Strategy to decide if a chest is on a raft:
+   1) Walk up the chest's parent chain — if any ancestor name matches
+      RAFT keywords → it's on a raft.
+   2) Also check for common raft attributes (Owner, Player, UserId,
+      PlotOwner) on the ancestor.
+   3) Also do a spatial fallback: find nearest raft model and check if
+      chest is within a small radius of it.
+]]
+
+-- Find all raft-like models in workspace
+local function getRafts()
+    local list = {}
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and not Players:GetPlayerFromCharacter(obj) then
+            if nameMatches(obj.Name, KEYWORDS.rafts) then
+                table.insert(list, obj)
+            end
+        end
+    end
+    return list
+end
+
+-- Get owning player of a raft (via attribute or name)
+local function getRaftOwner(raft)
+    if not raft then return nil end
+
+    -- check attributes
+    for _, attr in ipairs({"Owner", "Player", "UserId", "PlotOwner", "OwnerUserId"}) do
+        local v = raft:GetAttribute(attr)
+        if v then
+            if typeof(v) == "Instance" and v:IsA("Player") then
+                return v
+            elseif typeof(v) == "number" then
+                local p = Players:GetPlayerByUserId(v)
+                if p then return p end
+            elseif typeof(v) == "string" then
+                local p = Players:FindFirstChild(v)
+                if p and p:IsA("Player") then return p end
+            end
+        end
+    end
+
+    -- check ancestor attributes too
+    local ancestor = raft.Parent
+    while ancestor and ancestor ~= workspace do
+        for _, attr in ipairs({"Owner", "Player", "UserId", "PlotOwner"}) do
+            local v = ancestor:GetAttribute(attr)
+            if v then
+                if typeof(v) == "Instance" and v:IsA("Player") then return v end
+                if typeof(v) == "number" then
+                    local p = Players:GetPlayerByUserId(v)
+                    if p then return p end
+                end
+            end
+        end
+        ancestor = ancestor.Parent
+    end
+
+    return nil
+end
+
+-- Check if chest is inside a raft (parent chain)
+local function getParentRaft(chest)
+    local p = chest.Parent
+    while p and p ~= workspace do
+        if nameMatches(p.Name, KEYWORDS.rafts) then
+            return p
+        end
+        p = p.Parent
+    end
+    return nil
+end
+
+-- Spatial fallback — find raft within X studs of chest
+local function getNearestRaft(chestPart, rafts, maxDist)
+    maxDist = maxDist or 40
+    local best, bestD = nil, maxDist
+    for _, raft in ipairs(rafts) do
+        local root = raft.PrimaryPart or raft:FindFirstChildWhichIsA("BasePart")
+        if root then
+            local d = (chestPart.Position - root.Position).Magnitude
+            if d < bestD then best, bestD = raft, d end
+        end
+    end
+    return best
+end
+
+-- =====================================================================
+--  11.  AUTO STEAL — ONLY RAFT CHESTS, SKIP OWN RAFT
 -- =====================================================================
 local autoSteal = false
 local savedCFrame = nil
@@ -488,19 +550,18 @@ local function saveMySpot()
 end
 
 local function returnToMySpot()
-    if not savedCFrame then
-        setStatus("No saved spot. Toggle Auto Steal to save it.")
-        return
-    end
+    if not savedCFrame then return end
     local _, hrp = getChar()
     if hrp then
         hrp.CFrame = savedCFrame
-        setStatus("Returned to my raft.")
     end
 end
 
-local function getChests()
+-- Collect chests that are ON OTHER players' rafts
+local function getRaftChests()
+    local rafts = getRafts()
     local list = {}
+
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Model") or obj:IsA("BasePart") then
             if not Players:GetPlayerFromCharacter(obj) then
@@ -509,7 +570,27 @@ local function getChests()
                         and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart"))
                         or obj
                     if root and root:IsA("BasePart") then
-                        table.insert(list, {obj = obj, part = root})
+
+                        -- 1) parent chain check
+                        local raft = getParentRaft(obj)
+
+                        -- 2) spatial fallback
+                        if not raft then
+                            raft = getNearestRaft(root, rafts, 40)
+                        end
+
+                        if raft then
+                            -- 3) owner check — skip our own raft
+                            local owner = getRaftOwner(raft)
+                            if owner ~= LocalPlayer then
+                                table.insert(list, {
+                                    obj = obj,
+                                    part = root,
+                                    raft = raft,
+                                    owner = owner,
+                                })
+                            end
+                        end
                     end
                 end
             end
@@ -524,89 +605,90 @@ local function distTo(part)
     return (hrp.Position - part.Position).Magnitude
 end
 
--- Smooth tween teleport (avoids insta-kick from naive speed checks)
-local function smoothTeleport(targetPos)
+-- Instant teleport (fast + reliable — speed checks are server-side anyway)
+local function teleportInstant(targetPos)
     local _, hrp = getChar()
     if not hrp then return end
-    local dist = (hrp.Position - targetPos).Magnitude
-    -- duration scaled: ~1s per 200 studs, min 0.15s
-    local dur = math.clamp(dist / 200, 0.15, 1.2)
-    local tw = TweenService:Create(
-        hrp,
-        TweenInfo.new(dur, Enum.EasingStyle.Linear),
-        {CFrame = CFrame.new(targetPos)}
-    )
-    tw:Play()
-    tw.Completed:Wait()
+    hrp.CFrame = CFrame.new(targetPos)
 end
 
--- Try every interaction path on the chest
+-- Full interaction attempt
 local function interactWithChest(entry)
     local char = LocalPlayer.Character
     if not char then return end
 
-    -- 1) tools
+    -- ensure HRP sits right on the chest
+    local _, hrp = getChar()
+    if hrp and entry.part then
+        hrp.CFrame = CFrame.new(entry.part.Position + Vector3.new(0, 1.5, 0))
+    end
+
+    -- wait a beat so server registers us as "there"
+    task.wait(0.2)
+
+    -- 1) fire all tools
     for _, t in ipairs(char:GetChildren()) do
         if t:IsA("Tool") then
             pcall(function() t:Activate() end)
         end
     end
 
-    -- 2) ProximityPrompt (hold)
+    -- 2) ProximityPrompts — full hold
     for _, d in ipairs(entry.obj:GetDescendants()) do
-        if d:IsA("ProximityPrompt") then
+        if d:IsA("ProximityPrompt") and d.Enabled then
             pcall(function()
-                d.Enabled = true
                 d:InputHoldBegin()
                 local hold = d.HoldDuration
-                if hold and hold > 0 then
-                    task.wait(hold + 0.05)
-                else
-                    task.wait(0.12)
-                end
+                task.wait((hold and hold > 0) and (hold + 0.1) or 0.15)
                 d:InputHoldEnd()
             end)
         end
     end
 
-    -- 3) ClickDetector
+    -- 3) ClickDetectors
     for _, d in ipairs(entry.obj:GetDescendants()) do
         if d:IsA("ClickDetector") then
             pcall(function() fireclickdetector(d) end)
         end
     end
 
-    -- 4) Touched — move HRP inside
-    local _, hrp = getChar()
-    if hrp and entry.part then
-        hrp.CFrame = CFrame.new(entry.part.Position + Vector3.new(0, 1, 0))
+    -- 4) also try the raft itself (some games bind prompt on the raft model)
+    if entry.raft then
+        for _, d in ipairs(entry.raft:GetDescendants()) do
+            if d:IsA("ProximityPrompt") and d.Enabled then
+                pcall(function()
+                    d:InputHoldBegin()
+                    task.wait((d.HoldDuration or 0) + 0.1)
+                    d:InputHoldEnd()
+                end)
+            end
+        end
     end
 
-    task.wait(0.18)
+    task.wait(0.2)
 end
 
--- steal one chest
 local function stealChest(entry)
-    local _, hrp = getChar()
-    if not hrp or not entry.part then return end
-    local targetPos = entry.part.Position + Vector3.new(0, 2.5, 0)
-    smoothTeleport(targetPos)
+    if not entry.part then return end
+    teleportInstant(entry.part.Position + Vector3.new(0, 2, 0))
+    task.wait(0.1)
     interactWithChest(entry)
 end
 
--- main auto loop
+-- main loop
 task.spawn(function()
     while screenGui.Parent do
-        task.wait(0.5)
+        task.wait(0.6)
         if autoSteal then
-            local chests = getChests()
+            local chests = getRaftChests()
             if #chests == 0 then
-                setStatus("Auto Steal: no chests found.")
+                setStatus("Auto Steal: no raft chests found (only your raft / sea).")
             else
                 table.sort(chests, function(a, b) return distTo(a.part) < distTo(b.part) end)
                 for i, c in ipairs(chests) do
                     if not autoSteal then break end
-                    setStatus(("Stealing %d/%d — %s"):format(i, #chests, c.obj.Name))
+                    local ownerName = c.owner and c.owner.Name or "?"
+                    setStatus(("Stealing %d/%d — %s (owner: %s)"):format(i, #chests, c.obj.Name, ownerName))
                     stealChest(c)
                 end
                 returnToMySpot()
@@ -620,35 +702,44 @@ stealBtn.MouseButton1Click:Connect(function()
     autoSteal = not autoSteal
     if autoSteal then
         saveMySpot()
-        setStatus("Auto Steal: STARTED (my spot saved).")
+        setStatus("Auto Steal Raft Chests: STARTED.")
     else
         setStatus("Auto Steal: stopped.")
     end
-    updateToggle(stealBtn, stealDot, stealStroke, stealColor, autoSteal, "Auto Steal All Chests")
+    updateToggle(stealBtn, stealDot, stealStroke, stealColor, autoSteal, "Auto Steal Raft Chests")
 end)
 
 stopBtn.MouseButton1Click:Connect(function()
     autoSteal = false
-    updateToggle(stealBtn, stealDot, stealStroke, stealColor, false, "Auto Steal All Chests")
+    updateToggle(stealBtn, stealDot, stealStroke, stealColor, false, "Auto Steal Raft Chests")
     returnToMySpot()
     setStatus("Stopped.")
 end)
 
 returnBtn.MouseButton1Click:Connect(function()
     returnToMySpot()
+    setStatus("Returned.")
 end)
 
 rescanBtn.MouseButton1Click:Connect(function()
-    local chests = getChests()
-    print(("=== CHEST SCAN: %d found ==="):format(#chests))
+    local chests = getRaftChests()
+    print(("=== RAFT CHEST SCAN: %d found ==="):format(#chests))
     for i, c in ipairs(chests) do
-        print(("[%d] %s (%s) — dist %.0f"):format(i, c.obj.Name, c.obj.ClassName, distTo(c.part)))
+        local owner = c.owner and c.owner.Name or "unknown"
+        print(("[%d] %s | raft=%s | owner=%s | dist=%.0f"):format(
+            i, c.obj.Name, c.raft.Name, owner, distTo(c.part)
+        ))
     end
-    setStatus(("Scan: %d chests. See F9 console."):format(#chests))
+    print("=== rafts in workspace ===")
+    for _, r in ipairs(getRafts()) do
+        local owner = getRaftOwner(r)
+        print("  RAFT:", r.Name, "owner:", owner and owner.Name or "?")
+    end
+    setStatus(("Scan: %d raft chests. See F9."):format(#chests))
 end)
 
 -- =====================================================================
---  11.  OPTIMIZED REFRESH LOOP
+--  12.  OPTIMIZED REFRESH
 -- =====================================================================
 task.spawn(function()
     while screenGui.Parent do
@@ -660,7 +751,6 @@ task.spawn(function()
     end
 end)
 
--- shortcut
 UserInput.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.RightControl then
@@ -669,4 +759,4 @@ UserInput.InputBegan:Connect(function(input, gp)
 end)
 
 setStatus("Loaded. Ready.")
-print("[PRO SCRIPT v4] ready — F9 console for scans.")
+print("[PRO SCRIPT v5] ready.")
